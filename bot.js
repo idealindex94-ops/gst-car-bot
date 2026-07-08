@@ -191,6 +191,10 @@ bot.onText(/\/admin/, (msg) => {
     sendAdminPanel(msg.chat.id);
 });
 
+bot.onText(/\/myid/, (msg) => {
+    bot.sendMessage(msg.chat.id, `🆔 Your Chat ID is: <code>${msg.chat.id}</code>\n\n(Admin ID in code is: <code>${ADMIN_CHAT_ID}</code>)`, {parse_mode: 'HTML'});
+});
+
 function sendAdminPanel(chatId) {
     const options = {
         reply_markup: {
