@@ -5,6 +5,12 @@ const express = require('express');
 const token = '8967113990:AAEef83DPSQuQsWaZd8wlDf7CVS1m0h5USU';
 const bot = new TelegramBot(token, {polling: true});
 
+// Set up the persistent Telegram Menu Button
+bot.setMyCommands([
+    { command: '/start', description: '🚀 Start Bot & Show Menu' },
+    { command: '/admin', description: '👑 Open Admin Dashboard' },
+    { command: '/myid', description: '🆔 Check your Chat ID' }
+]);
 // --- ADMIN SETTINGS ---
 const ADMIN_CHAT_ID = '6189119577'; // Admin Chat ID
 let totalSearches = 0;
