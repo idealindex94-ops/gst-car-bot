@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSTIN Search Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Boxicons for icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <div class="header">
+                <i class='bx bx-search-alt-2'></i>
+                <h1>GSTIN Verifier</h1>
+                <p>Search any Indian GST number instantly</p>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="gstinInput" placeholder="Enter 15-digit GSTIN (e.g. 07AAAAA1234A1Z5)" maxlength="15">
+                <button id="searchBtn"><i class='bx bx-right-arrow-alt'></i></button>
+            </div>
+            
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Fetching Details...</p>
+            </div>
+
+            <div id="result" class="hidden">
+                <!-- Data will be injected here -->
+            </div>
+            
+            <div id="error" class="hidden">
+                <!-- Error messages -->
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
