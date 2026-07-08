@@ -5,6 +5,12 @@ const express = require('express');
 const token = '8967113990:AAEef83DPSQuQsWaZd8wlDf7CVS1m0h5USU';
 const bot = new TelegramBot(token, {polling: true});
 
+// --- ADMIN SETTINGS ---
+const ADMIN_CHAT_ID = 'YOUR_CHAT_ID_HERE'; // Replace with your numeric Chat ID
+let totalSearches = 0;
+const uniqueUsers = new Set();
+// ----------------------
+
 // Default API Key
 const DEFAULT_API_KEY = 'dd99e898afmsh0eebfd590d1b735p17e542jsn486882a029c3'; 
 
@@ -166,6 +172,22 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(msg.chat.id, "Welcome to the PRO Search Bot! 🚀\n\nSend me a **15-digit GSTIN** to get company details, OR send a **17-character VIN** to get vehicle details.");
 });
 
+bot.onText(/\/stats/, (msg) => {
+    if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return bot.sendMessage(msg.chat.id, "⛔ Unauthorized.");
+    bot.sendMessage(msg.chat.id, `📊 <b>Bot Statistics</b>\n━━━━━━━━━━━━━━━━\n👥 <b>Unique Users (since last restart):</b> ${uniqueUsers.size}\n🔍 <b>Total Searches:</b> ${totalSearches}\n\n<i>Note: Your live search logs are safe in this chat!</i>`, {parse_mode: 'HTML'});
+});
+
+bot.onText(/\/broadcast (.+)/, (msg, match) => {
+    if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return;
+    const broadcastMsg = match[1];
+    let count = 0;
+    uniqueUsers.forEach(userId => {
+        bot.sendMessage(userId, `📢 <b>Message from Admin:</b>\n\n${broadcastMsg}`, {parse_mode: 'HTML'}).catch(()=>{});
+        count++;
+    });
+    bot.sendMessage(msg.chat.id, `✅ Message broadcasted to ${count} active users.`);
+});
+
 // Helper for Vehicle formatting
 function formatVehicleToHTML(data) {
     if (!data || !data.specs) return "N/A";
@@ -192,6 +214,14 @@ bot.on('message', async (msg) => {
     
     // Ignore commands
     if (text.startsWith('/')) return;
+
+    // Admin Tracking
+    uniqueUsers.add(chatId);
+    totalSearches++;
+    if (ADMIN_CHAT_ID !== 'YOUR_CHAT_ID_HERE' && String(chatId) !== String(ADMIN_CHAT_ID)) {
+        const username = msg.from.username ? `@${msg.from.username}` : msg.from.first_name;
+        bot.sendMessage(ADMIN_CHAT_ID, `🔍 <b>New Search Alert!</b>\n👤 <b>User:</b> ${username}\n🆔 <b>Chat ID:</b> <code>${chatId}</code>\n📝 <b>Searched:</b> <code>${text}</code>`, {parse_mode: 'HTML'}).catch(()=>{});
+    }
 
     const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
     const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/i;
