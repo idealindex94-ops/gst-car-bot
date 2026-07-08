@@ -126,27 +126,8 @@ function formatToHTML(data, level = 0) {
                 });
             }
         } else if (typeof value === 'object') {
-            // Flatten addresses into a single string to save space!
-            const objKeysStr = Object.keys(value).join(" ").toLowerCase();
-            const isAddress = formattedKey.toLowerCase().includes('address') || 
-                              formattedKey.toLowerCase().includes('adr') || 
-                              objKeysStr.includes('pin') || 
-                              objKeysStr.includes('city') || 
-                              objKeysStr.includes('street') || 
-                              objKeysStr.includes('dist') || 
-                              objKeysStr.includes('loc');
-
-            if (isAddress) {
-                const flatAddress = Object.values(value).filter(v => v && v !== "N/A" && v !== "NA").join(", ");
-                if (flatAddress) {
-                    html += `\n〰️〰️〰️〰️〰️〰️〰️〰️〰️\n`;
-                    html += `${indent}${emoji} <b>${formattedKey}:</b> ${escapeHTML(flatAddress)}\n`;
-                    html += `〰️〰️〰️〰️〰️〰️〰️〰️〰️\n`;
-                }
-            } else {
-                html += `${indent}${emoji} <b>${formattedKey}:</b>\n`;
-                html += formatToHTML(value, level + 1);
-            }
+            html += `${indent}${emoji} <b>${formattedKey}:</b>\n`;
+            html += formatToHTML(value, level + 1);
         } else {
             html += `${indent}${emoji} <b>${formattedKey}:</b> ${escapeHTML(value)}\n`;
         }
