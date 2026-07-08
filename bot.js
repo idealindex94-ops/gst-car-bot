@@ -5,18 +5,24 @@ const express = require('express');
 const token = '8967113990:AAEef83DPSQuQsWaZd8wlDf7CVS1m0h5USU';
 const bot = new TelegramBot(token, {polling: true});
 
-// Set up the persistent Telegram Menu Button
-bot.setMyCommands([
-    { command: '/start', description: '🚀 Start Bot & Show Menu' },
-    { command: '/admin', description: '👑 Open Admin Dashboard' },
-    { command: '/myid', description: '🆔 Check your Chat ID' }
-]);
 // --- ADMIN SETTINGS ---
 const ADMIN_CHAT_ID = '6189119577'; // Admin Chat ID
 let totalSearches = 0;
 const uniqueUsers = new Set();
 const userState = {};
 // ----------------------
+
+// Set up the persistent Telegram Menu Button for NORMAL users
+bot.setMyCommands([
+    { command: '/start', description: '🚀 Start Bot & Show Menu' }
+]);
+
+// Set up the Menu Button for ADMIN only
+bot.setMyCommands([
+    { command: '/start', description: '🚀 Start Bot & Show Menu' },
+    { command: '/admin', description: '👑 Open Admin Dashboard' },
+    { command: '/myid', description: '🆔 Check your Chat ID' }
+], { scope: { type: 'chat', chat_id: ADMIN_CHAT_ID } }).catch(()=>{});
 
 // Default API Key
 const DEFAULT_API_KEY = 'dd99e898afmsh0eebfd590d1b735p17e542jsn486882a029c3'; 
