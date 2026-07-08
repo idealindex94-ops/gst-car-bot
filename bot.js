@@ -9,6 +9,7 @@ const bot = new TelegramBot(token, {polling: true});
 const ADMIN_CHAT_ID = '6189119577'; // Admin Chat ID
 let totalSearches = 0;
 const uniqueUsers = new Set();
+const userState = {};
 // ----------------------
 
 // Default API Key
@@ -169,48 +170,90 @@ function formatToHTML(data, level = 0) {
 
 
 bot.onText(/\/(start|menu|search)/, (msg) => {
+    // If Admin sends /start, show Admin Panel automatically
+    if (String(msg.chat.id) === String(ADMIN_CHAT_ID)) {
+        return sendAdminPanel(msg.chat.id);
+    }
+    
     const options = {
         reply_markup: {
             inline_keyboard: [
-                [{ text: "🔍 Search GSTIN", callback_data: "search_gstin" }]
+                [{ text: "🔍 Search GSTIN", callback_data: "search_gstin" }],
+                [{ text: "ℹ️ Help / How to Use", callback_data: "help" }, { text: "📞 Contact Support", callback_data: "contact" }]
             ]
         }
     };
-    bot.sendMessage(msg.chat.id, "Welcome to the PRO Search Bot! 🚀\n\nClick the button below to start searching.", options);
+    bot.sendMessage(msg.chat.id, "Welcome to the **PRO Search Bot**! 🚀\n\nPlease choose an option below:", options);
 });
+
+bot.onText(/\/admin/, (msg) => {
+    if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return bot.sendMessage(msg.chat.id, "⛔ Unauthorized.");
+    sendAdminPanel(msg.chat.id);
+});
+
+function sendAdminPanel(chatId) {
+    const options = {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "📊 View Live Stats", callback_data: "admin_stats" }],
+                [{ text: "📢 Broadcast Message", callback_data: "admin_broadcast" }],
+                [{ text: "🔍 Test Search (As User)", callback_data: "search_gstin" }]
+            ]
+        }
+    };
+    bot.sendMessage(chatId, "👑 **Admin Control Panel**\nWelcome back, Boss! What would you like to do?", options);
+}
 
 bot.on('callback_query', (callbackQuery) => {
     const message = callbackQuery.message;
-    if (callbackQuery.data === 'search_gstin') {
-        bot.sendMessage(message.chat.id, "Please enter the 15-digit GSTIN number:");
-        bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
+    const data = callbackQuery.data;
+    const chatId = message.chat.id;
+    
+    bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
+
+    if (data === 'search_gstin') {
+        userState[chatId] = 'awaiting_gstin';
+        bot.sendMessage(chatId, "👇 **Please enter the 15-digit GSTIN number:**");
+    } else if (data === 'help') {
+        bot.sendMessage(chatId, "ℹ️ **Help**\n\n1. Click 'Search GSTIN'\n2. Paste any valid 15-digit GSTIN.\n3. Wait a few seconds for the full report.");
+    } else if (data === 'contact') {
+        bot.sendMessage(chatId, "📞 **Contact Support**\n\nIf you are facing issues or need bulk access, please contact the Admin.");
+    } else if (data === 'admin_stats') {
+        if (String(chatId) !== String(ADMIN_CHAT_ID)) return;
+        bot.sendMessage(chatId, `📊 <b>Live Bot Statistics</b>\n━━━━━━━━━━━━━━━━\n👥 <b>Unique Users:</b> ${uniqueUsers.size}\n🔍 <b>Total Searches:</b> ${totalSearches}\n\n<i>Note: Stats reset when the server restarts.</i>`, {parse_mode: 'HTML'});
+    } else if (data === 'admin_broadcast') {
+        if (String(chatId) !== String(ADMIN_CHAT_ID)) return;
+        userState[chatId] = 'awaiting_broadcast';
+        bot.sendMessage(chatId, "📢 **Broadcast Mode**\n\nPlease type the message you want to send to ALL users.\n*(Or type 'cancel' to abort)*");
     }
-});
-
-bot.onText(/\/stats/, (msg) => {
-    if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return bot.sendMessage(msg.chat.id, "⛔ Unauthorized.");
-    bot.sendMessage(msg.chat.id, `📊 <b>Bot Statistics</b>\n━━━━━━━━━━━━━━━━\n👥 <b>Unique Users (since last restart):</b> ${uniqueUsers.size}\n🔍 <b>Total Searches:</b> ${totalSearches}\n\n<i>Note: Your live search logs are safe in this chat!</i>`, {parse_mode: 'HTML'});
-});
-
-bot.onText(/\/broadcast (.+)/, (msg, match) => {
-    if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return;
-    const broadcastMsg = match[1];
-    let count = 0;
-    uniqueUsers.forEach(userId => {
-        bot.sendMessage(userId, `📢 <b>Message from Admin:</b>\n\n${broadcastMsg}`, {parse_mode: 'HTML'}).catch(()=>{});
-        count++;
-    });
-    bot.sendMessage(msg.chat.id, `✅ Message broadcasted to ${count} active users.`);
 });
 
  
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
-    const text = msg.text ? msg.text.trim().toUpperCase() : "";
+    let text = msg.text ? msg.text.trim() : "";
     
     // Ignore commands
     if (text.startsWith('/')) return;
+
+    // State Management for Broadcast
+    if (userState[chatId] === 'awaiting_broadcast' && String(chatId) === String(ADMIN_CHAT_ID)) {
+        if (text.toLowerCase() === 'cancel') {
+            userState[chatId] = null;
+            return bot.sendMessage(chatId, "❌ Broadcast cancelled.");
+        }
+        
+        let count = 0;
+        uniqueUsers.forEach(userId => {
+            bot.sendMessage(userId, `📢 <b>Message from Admin:</b>\n\n${text}`, {parse_mode: 'HTML'}).catch(()=>{});
+            count++;
+        });
+        userState[chatId] = null;
+        return bot.sendMessage(chatId, `✅ Message successfully broadcasted to ${count} active users.`);
+    }
+
+    text = text.toUpperCase();
 
     // Admin Tracking
     uniqueUsers.add(chatId);
