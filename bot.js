@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api').default || require('node-te
 const axios = require('axios');
 const express = require('express');
 // Replace with the user's token
-const token = '8210977415:AAFDVrx810GY8M2GT38I8Ohpehr4rMb1fRA';
+const token = '8967113990:AAEef83DPSQuQsWaZd8wlDf7CVS1m0h5USU';
 const bot = new TelegramBot(token, {polling: true});
 
 // Default API Key
