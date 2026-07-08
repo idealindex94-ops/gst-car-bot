@@ -126,8 +126,34 @@ function formatToHTML(data, level = 0) {
                 });
             }
         } else if (typeof value === 'object') {
-            html += `${indent}${emoji} <b>${formattedKey}:</b>\n`;
-            html += formatToHTML(value, level + 1);
+            const isAddressKey = formattedKey.toLowerCase().includes('address') || 
+                                 formattedKey.toLowerCase().includes('pradr') || 
+                                 formattedKey.toLowerCase().includes('adadr') ||
+                                 formattedKey.toLowerCase().includes('location');
+                                 
+            if (isAddressKey) {
+                let addressParts = [];
+                function extractRecursive(val) {
+                    if (typeof val === 'string' && val.trim() !== '' && val !== 'NA' && val !== 'N/A') {
+                        addressParts.push(val.trim());
+                    } else if (typeof val === 'number') {
+                        addressParts.push(String(val));
+                    } else if (Array.isArray(val)) {
+                        val.forEach(extractRecursive);
+                    } else if (val !== null && typeof val === 'object') {
+                        Object.values(val).forEach(extractRecursive);
+                    }
+                }
+                extractRecursive(value);
+                
+                if (addressParts.length > 0) {
+                    html += `\n🏠 <b>${formattedKey}:</b>\n`;
+                    html += `    ╰─ <code>${escapeHTML(addressParts.join(', '))}</code>\n\n`;
+                }
+            } else {
+                html += `${indent}${emoji} <b>${formattedKey}:</b>\n`;
+                html += formatToHTML(value, level + 1);
+            }
         } else {
             html += `${indent}${emoji} <b>${formattedKey}:</b> ${escapeHTML(value)}\n`;
         }
