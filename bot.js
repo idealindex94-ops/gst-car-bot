@@ -6,7 +6,7 @@ const token = '8967113990:AAEef83DPSQuQsWaZd8wlDf7CVS1m0h5USU';
 const bot = new TelegramBot(token, {polling: true});
 
 // --- ADMIN SETTINGS ---
-const ADMIN_CHAT_ID = 'YOUR_CHAT_ID_HERE'; // Replace with your numeric Chat ID
+const ADMIN_CHAT_ID = '6189119577'; // Admin Chat ID
 let totalSearches = 0;
 const uniqueUsers = new Set();
 // ----------------------
@@ -168,8 +168,23 @@ function formatToHTML(data, level = 0) {
 }
 
 
-bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, "Welcome to the PRO Search Bot! 🚀\n\nSend me a **15-digit GSTIN** to get company details, OR send a **17-character VIN** to get vehicle details.");
+bot.onText(/\/(start|menu|search)/, (msg) => {
+    const options = {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "🔍 Search GSTIN", callback_data: "search_gstin" }]
+            ]
+        }
+    };
+    bot.sendMessage(msg.chat.id, "Welcome to the PRO Search Bot! 🚀\n\nClick the button below to start searching.", options);
+});
+
+bot.on('callback_query', (callbackQuery) => {
+    const message = callbackQuery.message;
+    if (callbackQuery.data === 'search_gstin') {
+        bot.sendMessage(message.chat.id, "Please enter the 15-digit GSTIN number:");
+        bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
+    }
 });
 
 bot.onText(/\/stats/, (msg) => {
@@ -188,25 +203,7 @@ bot.onText(/\/broadcast (.+)/, (msg, match) => {
     bot.sendMessage(msg.chat.id, `✅ Message broadcasted to ${count} active users.`);
 });
 
-// Helper for Vehicle formatting
-function formatVehicleToHTML(data) {
-    if (!data || !data.specs) return "N/A";
-    let html = "";
-    if (data.make) html += `🚗 <b>Make:</b> ${escapeHTML(data.make)}\n`;
-    if (data.model) html += `🚙 <b>Model:</b> ${escapeHTML(data.model)}\n`;
-    if (data.year) html += `📅 <b>Year:</b> ${escapeHTML(data.year)}\n`;
-    if (data.trim) html += `🏷️ <b>Trim:</b> ${escapeHTML(data.trim)}\n`;
-    
-    const specs = data.specs;
-    if (specs.body_class) html += `🚘 <b>Body Class:</b> ${escapeHTML(specs.body_class)}\n`;
-    if (specs.engine_model) html += `⚙️ <b>Engine:</b> ${escapeHTML(specs.engine_model)}\n`;
-    if (specs.displacement_l) html += `⛽ <b>Displacement:</b> ${escapeHTML(specs.displacement_l)}L\n`;
-    if (specs.drive_type) html += `🛣️ <b>Drive Type:</b> ${escapeHTML(specs.drive_type)}\n`;
-    if (specs.transmission_style) html += `🕹️ <b>Transmission:</b> ${escapeHTML(specs.transmission_style)} (${escapeHTML(specs.transmission_speeds)} speed)\n`;
-    if (specs.fuel_type_primary) html += `🛢️ <b>Fuel:</b> ${escapeHTML(specs.fuel_type_primary)}\n`;
-    if (specs.plant_city && specs.plant_country) html += `🏭 <b>Plant:</b> ${escapeHTML(specs.plant_city)}, ${escapeHTML(specs.plant_country)}\n`;
-    return html;
-}
+ 
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -224,7 +221,6 @@ bot.on('message', async (msg) => {
     }
 
     const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/i;
     
     if (gstinRegex.test(text)) {
         const waitMsg = await bot.sendMessage(chatId, "⏳ Fetching GST details from servers, please wait...");
@@ -294,32 +290,8 @@ bot.on('message', async (msg) => {
             message_id: waitMsg.message_id
         });
     }
-    } else if (vinRegex.test(text)) {
-        const waitMsg = await bot.sendMessage(chatId, "⏳ Decoding VIN from servers, please wait...");
-        try {
-            const response = await axios.get(`https://car-api2.p.rapidapi.com/api/vin/${encodeURIComponent(text)}`, {
-                headers: {
-                    'X-RapidAPI-Key': DEFAULT_API_KEY,
-                    'X-RapidAPI-Host': 'car-api2.p.rapidapi.com'
-                },
-                timeout: 10000
-            });
-            const carData = response.data;
-            if (carData.error || !carData.make) {
-                bot.editMessageText(`❌ API Error or Invalid VIN.`, { chat_id: chatId, message_id: waitMsg.message_id });
-                return;
-            }
-            let replyMessage = `🚗 <b>VEHICLE (VIN) DETAILS</b>\n━━━━━━━━━━━━━━━━━━━━\n`;
-            replyMessage += `🏷️ <b>VIN:</b> <code>${escapeHTML(text)}</code>\n\n`;
-            replyMessage += formatVehicleToHTML(carData);
-            replyMessage += `\n━━━━━━━━━━━━━━━━━━━━\n📚 <i>ONLY EDUCATION PURPOSE</i>`;
-            
-            bot.editMessageText(replyMessage, { chat_id: chatId, message_id: waitMsg.message_id, parse_mode: "HTML" });
-        } catch(e) {
-            bot.editMessageText("⚠️ Failed to fetch vehicle details. " + e.message, { chat_id: chatId, message_id: waitMsg.message_id });
-        }
     } else {
-        bot.sendMessage(chatId, "⚠️ Invalid format! Please send a valid 15-digit GSTIN or a 17-character VIN.");
+        bot.sendMessage(chatId, "⚠️ Invalid format! Please enter a valid 15-digit GSTIN.");
     }
 });
 
